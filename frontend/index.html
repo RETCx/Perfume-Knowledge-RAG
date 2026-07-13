@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="th">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Perfume Sommelier AI</title>
+    <link rel="stylesheet" href="style.css?v=8">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500&family=Noto+Sans+Thai:wght@400;500&display=swap"
+        rel="stylesheet">
+</head>
+
+<body>
+    <!-- Background animated blobs for Glassmorphism effect -->
+    <div class="background-blobs">
+        <div class="blob blob-1"></div>
+        <div class="blob blob-2"></div>
+        <div class="blob blob-3"></div>
+    </div>
+
+    <div class="app-container">
+        <main class="chat-main">
+            <header class="chat-header glass-effect">
+                <div class="header-content">
+                    <div class="logo-icon"><i class="fa-solid fa-droplet"></i></div>
+                    <div class="title-container">
+                        <h2 id="app-title">Perfume Sommelier</h2>
+                        <span class="status-indicator" id="mode-indicator">
+                            <span class="pulse" id="mode-pulse"></span> <span id="mode-text">Demo Version (4 questions/day)</span>
+                        </span>
+                    </div>
+                </div>
+                <div class="header-settings">
+                    <!-- Model picker -->
+                    <div class="custom-select" id="model-picker">
+                        <button class="custom-select-btn" id="model-btn">
+                            <span id="model-label">Loading...</span>
+                            <span class="arrow"></span>
+                        </button>
+                        <div class="custom-select-menu" id="model-menu"></div>
+                    </div>
+                    <!-- Language picker -->
+                    <div class="custom-select" id="lang-picker">
+                        <button class="custom-select-btn" id="lang-btn">
+                            <span id="lang-label">🇹🇭 ภาษาไทย</span>
+                            <span class="arrow"></span>
+                        </button>
+                        <div class="custom-select-menu" id="lang-menu">
+                            <div class="custom-select-option selected" data-value="Thai">🇹🇭 ภาษาไทย</div>
+                            <div class="custom-select-option" data-value="English">🇬🇧 English</div>
+                        </div>
+                    </div>
+                    <div class="header-divider"></div>
+                    <button id="reset-btn" class="icon-btn" title="Reset Chat"><i class="fa-solid fa-rotate-right"></i></button>
+                </div>
+            </header>
+
+            <div class="chat-box" id="chat-box">
+                <div class="message ai-message" id="welcome-message">
+                    <div class="avatar ai-avatar"><i class="fa-solid fa-flask"></i></div>
+                    <div class="message-content" id="welcome-text">
+                        สวัสดีครับ ผมคือ Perfume Sommelier ยินดีต้อนรับสู่โลกของกลิ่นหอม
+                        วันนี้คุณกำลังมองหาน้ำหอมสไตล์ไหนอยู่ครับ?
+                    </div>
+                </div>
+            </div>
+
+            <div class="input-container glass-effect">
+                <div class="input-box">
+                    <textarea id="user-input" placeholder="บอกแนวกลิ่น อารมณ์ หรือสไตล์ที่คุณตามหา..."></textarea>
+                    <button id="send-btn"><i class="fa-solid fa-paper-plane"></i></button>
+                    <button id="stop-btn" style="display: none;"><i class="fa-solid fa-stop"></i></button>
+
+                </div>
+                <div class="disclaimer" id="footer-text">
+                    Portfolio Project | Built with FastAPI + Qdrant + LangGraph
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <script src="i18n.js?v=9"></script>
+    <script src="script.js?v=9"></script>
+</body>
+
+</html>
