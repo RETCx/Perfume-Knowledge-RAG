@@ -156,7 +156,7 @@ Data Scraper    GCS Bucket   /api/ingest   BM25 pkl      responds
 (scheduled)     (CSV + pkl)  (sync call)
 ```
 
-The scraper calls `POST /api/ingest` (with `x-diagnostic-token` header) after each run. The backend then **synchronously** downloads the latest CSV, upserts all embeddings into Qdrant, rebuilds the BM25 index, and uploads it back to GCS — keeping the connection alive to prevent Cloud Run CPU throttling.
+The scraper calls `POST /api/ingest` (with `x-ingest-token` header) after each run. The backend then **synchronously** downloads the latest CSV, upserts all embeddings into Qdrant, rebuilds the BM25 index, and uploads it back to GCS — keeping the connection alive to prevent Cloud Run CPU throttling.
 
 To manually trigger ingestion:
 ```bash
@@ -187,7 +187,6 @@ Perfume-RAG-Assistant/
 │   └── sample_data/     # Synthetic sample CSV for local testing
 ├── prompts/
 │   └── system_prompt.txt  # System prompt template (supports {language} variable)
-├── notebooks/           # EDA and pipeline development notebooks
 ├── Dockerfile           # python:3.11-slim, pre-downloads embedding model at build time
 ├── requirements.txt
 └── README.md
