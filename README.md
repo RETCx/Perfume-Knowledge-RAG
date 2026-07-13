@@ -1,6 +1,6 @@
-# Perfume Sommelier — RAG Chatbot
+# Perfume Sommelier RAG Chatbot
 
-A conversational AI assistant that recommends fragrances based on natural-language descriptions of desired scent, mood, or style. Built as a production-ready RAG pipeline with hybrid search, multi-LLM routing, and a fully automated data pipeline.
+A conversational AI assistant that recommends fragrances based on natural-language descriptions of desired scent, mood, or style. Built as a RAG pipeline with hybrid search, multi-LLM routing, and a fully automated data pipeline.
 
 > **Live Demo**: [perfume-rag-assistant-518777968420.asia-southeast3.run.app](https://perfume-rag-assistant-518777968420.asia-southeast3.run.app)
 
