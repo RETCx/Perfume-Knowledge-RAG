@@ -140,7 +140,7 @@ async def chat_endpoint(request: Request, chat_req: ChatRequest):
 async def rate_limit_handler(request: Request, exc: RateLimitExceeded):
     return JSONResponse(
         status_code=429,
-        content={"reply": "Daily demo limit reached. Thank you for trying the demo!\n\nSource Code & Architecture: https://github.com/RETCx/Perfume-Knowledge-RAG-recommend", "is_error": True}
+        content={"reply": "Daily demo limit reached. Thank you for trying the demo!\n\nSource Code & Architecture: https://github.com/RETCx/Perfume-Knowledge-RAG-", "is_error": True}
     )
 
 
