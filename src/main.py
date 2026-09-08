@@ -72,6 +72,10 @@ class ChatResponse(BaseModel):
 async def get_available_models():
     return {"models": AVAILABLE_MODELS}
 
+@app.get("/health")
+async def health_check():
+    return {"status": "ok"}
+
 # limit status endpoint
 @app.get("/limit-status")
 @limiter.limit("4/day")
