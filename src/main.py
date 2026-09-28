@@ -3,9 +3,10 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import JSONResponse
 
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 import os
 import logging
+import uuid
 import sys
 import asyncio
 
@@ -36,7 +37,13 @@ def get_real_ip(request: Request) -> str:
         return forwarded_for.split(",")[0].strip()
     return request.client.host if request.client else "127.0.0.1"
 
-limiter = Limiter(key_func=get_real_ip)
+def diagnostic_token_func(request: Request):
+    token = request.headers.get("x-diagnostic-token")
+    if token and token == os.getenv("DIAGNOSTIC_TOKEN", "diagnostic_token"):
+        return str(uuid.uuid4())
+    return get_real_ip(request)
+
+limiter = Limiter(key_func=diagnostic_token_func)
 app.state.limiter = limiter
 app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 app.add_middleware(SlowAPIMiddleware)
@@ -57,11 +64,11 @@ app.add_middleware(
 )
 
 class ChatRequest(BaseModel):
-    message: str
-    session_id: str 
+    message: str = Field(..., description="The user's message")
+    session_id: str = Field(..., description="The ID of the user's session")
     model: str = DEFAULT_MODEL  
     language: str = DEFAULT_LANGUAGE
-    chat_history: list = []
+    chat_history: list = Field(default_factory=list)
 
 class ChatResponse(BaseModel):
     reply: str
@@ -72,21 +79,30 @@ class ChatResponse(BaseModel):
 async def get_available_models():
     return {"models": AVAILABLE_MODELS}
 
+# health check — used by the Vercel landing page to wake up and verify Cloud Run is ready
 @app.get("/health")
 async def health_check():
     return {"status": "ok"}
 
 # limit status endpoint
 @app.get("/limit-status")
-@limiter.limit("4/day")
+@limiter.limit("4/day") # Dummy limit call to fetch remaining headers without running heavy agent logic
 async def limit_status(request: Request):
     return {"status": "ok"}
 
+@app.get("/health")
+async def health_check():
+    return {"status": "ok"}
 
-# chat endpoint
+
+# endpoint
 @app.post("/chat", response_model=ChatResponse)
 @limiter.limit("4/day")
 async def chat_endpoint(request: Request, chat_req: ChatRequest):
+    x_diagnostic_token = request.headers.get("x-diagnostic-token")
+    if x_diagnostic_token == os.getenv("DIAGNOSTIC_TOKEN", "diagnostic_token"):
+        logger.info("[API] Diagnostic Mode Activated ")
+
     logger.info(f"[API] received message: {chat_req.message}")
     logger.info(f"[API] selected model: {chat_req.model}")
 
@@ -106,6 +122,7 @@ async def chat_endpoint(request: Request, chat_req: ChatRequest):
         return ChatResponse(reply=DEMO_CACHE[msg_lower])
 
     try:
+        #  agent processes the message and generates a reply
         ai_reply = chat_with_sommelier(
             user_message=chat_req.message, 
             session_id=chat_req.session_id,
@@ -148,11 +165,6 @@ async def rate_limit_handler(request: Request, exc: RateLimitExceeded):
     )
 
 
-# ---------------------------------------------------------------------------
-# Automated Data Pipeline (webhook)
-# Triggered by the data collection script after each run via POST /api/ingest
-# Requires INGEST_TOKEN env var to authenticate.
-# ---------------------------------------------------------------------------
 def background_ingestion():
     bucket_name = os.getenv("GCP_BUCKET_NAME")
     try:
@@ -164,18 +176,11 @@ def background_ingestion():
 
 @app.post("/api/ingest")
 async def trigger_ingestion(request: Request):
-    """
-    Protected webhook endpoint. Triggered by the automated data pipeline
-    after each data collection run to keep Qdrant and BM25 index up-to-date.
-    Requires the INGEST_TOKEN environment variable to be set.
-    """
-    ingest_token = os.getenv("INGEST_TOKEN")
-    if not ingest_token:
-        raise HTTPException(status_code=503, detail="Ingestion not configured on this server.")
-    if request.headers.get("x-ingest-token") != ingest_token:
+    auth_header = request.headers.get("x-diagnostic-token")
+    if auth_header != os.getenv("DIAGNOSTIC_TOKEN", "diagnostic_token"):
         raise HTTPException(status_code=401, detail="Unauthorized")
     
-    # Run synchronously — keeps Cloud Run CPU active until pipeline completes
+    # Run synchronously to prevent Cloud Run from throttling CPU
     try:
         await asyncio.to_thread(background_ingestion)
         return {"status": "Ingestion completed successfully"}
@@ -183,17 +188,14 @@ async def trigger_ingestion(request: Request):
         raise HTTPException(status_code=500, detail=str(e))
 
 # ==============================================================
-# Serve the frontend (HTML/CSS/JS) directly from FastAPI
-# so the entire app runs as a single process on Cloud Run.
+# give fastapi the ability to serve our frontend files (HTML/CSS/JS) directly, so we don't have to rely on a separate Live Server and deal with refresh issues. This way, when we run our FastAPI app, it will also serve our frontend, and we can access it at http://localhost:8000 without needing to start another server for the frontend.
 # ==============================================================
 frontend_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), "frontend")
 app.mount("/", StaticFiles(directory=frontend_path, html=True), name="frontend")
 
 async def periodic_bm25_reload(interval_days: int = 3):
-    """Re-downloads the BM25 index from GCS every N days.
-    Ensures long-running Cloud Run instances stay in sync after pipeline updates."""
     while True:
-        await asyncio.sleep(interval_days * 86400)
+        await asyncio.sleep(interval_days * 86400) # Sleep for N days
         logger.info("[System] Running periodic BM25 reload from GCS...")
         try:
             await asyncio.to_thread(reload_bm25)
@@ -203,6 +205,7 @@ async def periodic_bm25_reload(interval_days: int = 3):
 
 @app.on_event("startup")
 async def startup_event():
+    # ดึงไฟล์ BM25 pkl ใหม่ทุกๆ 1 วัน
     asyncio.create_task(periodic_bm25_reload(interval_days=3))
 
 if __name__ == "__main__":

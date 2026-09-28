@@ -15,7 +15,7 @@ AVAILABLE_MODELS = [
     # (Always Available - Recommend)
     {"id": "gemini-2.5-flash-lite", "provider": "gemini", "name": "Gemini 2.5 Flash-Lite", "description": "ใช้งานได้แน่นอน (เร็วและประหยัดสุด)"},
     {"id": "gemini-2.5-flash", "provider": "gemini", "name": "Gemini 2.5 Flash", "description": "ใช้งานได้แน่นอน (ฉลาดและครอบคลุม)"},
-    {"id": "gemini-3.1-flash-lite-preview", "provider": "gemini", "name": "Gemini 3.1 Flash-Lite Preview", "description": "ใช้งานได้แน่นอน (ตัวอย่างรุ่นเบาและใหม่สุด)"},
+    {"id": "gemini-3.1-flash-lite", "provider": "gemini", "name": "Gemini 3.1 Flash-Lite", "description": "ใช้งานได้แน่นอน (เร็วและประหยัดสุด รุ่นใหม่)"},
     
     # Others (Might be slow/unavailable)
     # Groq 

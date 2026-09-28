@@ -85,9 +85,11 @@ def get_llm(model_id: str):
 
     
     if provider == "gemini":
+        location = "global" if model_id.startswith("gemini-3") else "us-central1"
         primary_llm = ChatVertexAI(
             model_name=model_id, 
             temperature=0.3,
+            location=location,
             safety_settings=safety_settings
         )
         if groq_fallback:
