@@ -105,7 +105,7 @@ graph TD
 
 ### Security
 - **Input Firewall** — `InputFirewall` blocks prompt injection patterns (ignore instructions, DAN, jailbreak, bypass, etc.), toxic keywords, and enforces a 500-character message limit
-- **Rate Limiting** — `slowapi` caps usage at **4 requests / IP / day** for the public demo. An `INGEST_TOKEN` header is used to authenticate the internal webhook for data ingestion.
+- **Rate Limiting** — `slowapi` caps usage at **4 requests / IP / day** for the public demo. An `x-ingest-token` header (configured via `INGEST_TOKEN`) authenticates internal webhooks for data ingestion and bypasses rate limits.
 
 ### Infrastructure
 - **Cloud Run** — Containerized FastAPI backend deployed via GitHub Actions CI/CD

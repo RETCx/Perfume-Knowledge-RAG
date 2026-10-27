@@ -37,9 +37,17 @@ def get_real_ip(request: Request) -> str:
         return forwarded_for.split(",")[0].strip()
     return request.client.host if request.client else "127.0.0.1"
 
+def is_valid_token(request: Request) -> bool:
+    token = request.headers.get("x-ingest-token") or request.headers.get("x-diagnostic-token")
+    if not token:
+        return False
+    valid_tokens = {os.getenv("INGEST_TOKEN"), os.getenv("DIAGNOSTIC_TOKEN")} - {None, ""}
+    if not valid_tokens:
+        valid_tokens = {"diagnostic_token"}
+    return token in valid_tokens
+
 def diagnostic_token_func(request: Request):
-    token = request.headers.get("x-diagnostic-token")
-    if token and token == os.getenv("DIAGNOSTIC_TOKEN", "diagnostic_token"):
+    if is_valid_token(request):
         return str(uuid.uuid4())
     return get_real_ip(request)
 
@@ -90,18 +98,13 @@ async def health_check():
 async def limit_status(request: Request):
     return {"status": "ok"}
 
-@app.get("/health")
-async def health_check():
-    return {"status": "ok"}
-
 
 # endpoint
 @app.post("/chat", response_model=ChatResponse)
 @limiter.limit("4/day")
 async def chat_endpoint(request: Request, chat_req: ChatRequest):
-    x_diagnostic_token = request.headers.get("x-diagnostic-token")
-    if x_diagnostic_token == os.getenv("DIAGNOSTIC_TOKEN", "diagnostic_token"):
-        logger.info("[API] Diagnostic Mode Activated ")
+    if is_valid_token(request):
+        logger.info("[API] Diagnostic / Bypass Mode Activated")
 
     logger.info(f"[API] received message: {chat_req.message}")
     logger.info(f"[API] selected model: {chat_req.model}")
@@ -161,7 +164,7 @@ async def chat_endpoint(request: Request, chat_req: ChatRequest):
 async def rate_limit_handler(request: Request, exc: RateLimitExceeded):
     return JSONResponse(
         status_code=429,
-        content={"reply": "Daily demo limit reached. Thank you for trying the demo!\n\nSource Code & Architecture: https://github.com/RETCx/Perfume-Knowledge-RAG-", "is_error": True}
+        content={"reply": "Daily demo limit reached. Thank you for trying the demo!\n\nSource Code & Architecture: https://github.com/RETCx/Perfume-Knowledge-RAG", "is_error": True}
     )
 
 
@@ -173,11 +176,11 @@ def background_ingestion():
         logger.info("[API] Ingestion & BM25 Reload completed successfully.")
     except Exception as e:
         logger.error(f"[API] Ingestion failed: {e}")
+        raise
 
 @app.post("/api/ingest")
 async def trigger_ingestion(request: Request):
-    auth_header = request.headers.get("x-diagnostic-token")
-    if auth_header != os.getenv("DIAGNOSTIC_TOKEN", "diagnostic_token"):
+    if not is_valid_token(request):
         raise HTTPException(status_code=401, detail="Unauthorized")
     
     # Run synchronously to prevent Cloud Run from throttling CPU
@@ -185,6 +188,7 @@ async def trigger_ingestion(request: Request):
         await asyncio.to_thread(background_ingestion)
         return {"status": "Ingestion completed successfully"}
     except Exception as e:
+        logger.error(f"[API] Ingestion endpoint failed: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
 # ==============================================================
